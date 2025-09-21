@@ -13,11 +13,11 @@ function love.load()
     gameMap = sti('maps/testMap.lua')
 
     player = {}
-    player.collider = world:newBSFRectangleCollider(400, 250, 40, 80, 14)
+    player.collider = world:newBSGRectangleCollider(400, 250, 40, 80, 14)
     player.collider:setFixedRotation(true)
     player.x = 400
     player.y = 200
-    player.speed = 5
+    player.speed = 300
     player.spriteSheet = love.graphics.newImage('sprites/player-sheet.png')
     player.grid = anim8.newGrid( 12, 18, player.spriteSheet:getWidth(), player.spriteSheet:getHeight() )
 
@@ -30,34 +30,43 @@ function love.load()
     player.anim = player.animations.left
 
     background = love.graphics.newImage('sprites/background.png')
+
+    local wall = world:newRectangleCollider(100, 200, 120, 300)
+    wall:setType('static')
 end
 
 function love.update(dt)
     local isMoving = false
 
-    if love.keyboard.isDown("right") then
-        player.x = player.x + player.speed
+    local vx = 0
+    local vy = 0
+
+    if love.keyboard.isDown("right", "d") then
+        vx = player.speed
         player.anim = player.animations.right
         isMoving = true
     end
 
-    if love.keyboard.isDown("left") then
-        player.x = player.x - player.speed
+    if love.keyboard.isDown("left", "a") then
+        vx = -player.speed
         player.anim = player.animations.left
         isMoving = true
     end
 
-    if love.keyboard.isDown("down") then
-        player.y = player.y + player.speed
+    if love.keyboard.isDown("down", "s") then
+       vy = player.speed
         player.anim = player.animations.down
         isMoving = true
     end
 
-    if love.keyboard.isDown("up") then
-        player.y = player.y - player.speed
+    if love.keyboard.isDown("up", "w") then
+        vy = -player.speed
         player.anim = player.animations.up
         isMoving = true
     end
+
+
+    player.collider:setLinearVelocity(vx, vy)
 
     if isMoving == false then
         player.anim:gotoFrame(2)
