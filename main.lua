@@ -1,4 +1,8 @@
 function love.load()
+    wf = require 'libraries/windfield'
+    world = wf.newWorld(0, 0)
+
+
     camera = require 'libraries/camera'
     cam = camera()
 
@@ -9,6 +13,8 @@ function love.load()
     gameMap = sti('maps/testMap.lua')
 
     player = {}
+    player.collider = world:newBSFRectangleCollider(400, 250, 40, 80, 14)
+    player.collider:setFixedRotation(true)
     player.x = 400
     player.y = 200
     player.speed = 5
@@ -57,6 +63,8 @@ function love.update(dt)
         player.anim:gotoFrame(2)
     end
 
+    world:update(dt)
+
     player.anim:update(dt)
 
     -- Update camera position
@@ -96,5 +104,6 @@ function love.draw()
         gameMap:drawLayer(gameMap.layers["Ground"])
         gameMap:drawLayer(gameMap.layers["Trees"])
         player.anim:draw(player.spriteSheet, player.x, player.y, nil, 6, nil, 6, 9)
+        world:draw()
     cam:detach()
 end
