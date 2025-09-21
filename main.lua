@@ -1,134 +1,141 @@
-function love.load()
-    wf = require 'libraries/windfield'
-    world = wf.newWorld(0, 0)
+local SceneryInit = require("scenery")  -- Load the scenery module
+-- HEY
+-- Global settings
+settings = require 'settings'
 
-    camera = require 'libraries/camera'
-    cam = camera()
+-- Temporary Global Classes
+local sti = require 'src.libs.sti'     -- Library to load and handle tiled maps
+class = require 'src.libs.middleclass'
 
-    anim8 = require 'libraries/anim8'
-    love.graphics.setDefaultFilter("nearest", "nearest")
+-- Global Datasets
+sounds = require 'src.datasets.sounds'
+textQ = require 'src.datasets.textQ'
+-- Global Vars
+gameMap = sti('assets/maps/map.lua', {"box2d"}) -- Load the game map with Box2D physics
 
-    sti = require 'libraries/sti'
-    gameMap = sti('maps/testMap.lua')
+joysticks = love.joystick.getJoysticks()
+-- Shortening love's modules to avoid repetitive use of 'love.'
+lg = love.graphics  -- Graphics module for rendering
+lk = love.keyboard  -- Keyboard module for input
+lm = love.mouse     -- Mouse module for input
+la = love.audio     -- Audio module for sound
+defW = love.graphics.getWidth()  -- Default window width
+defH = love.graphics.getHeight() -- Default window height
+wW = defW  -- Current window width (initially same as default)
+wH = defH  -- Current window height (initially same as default)
+zoom = 3
+scale = wH/defH * zoom
+local decreasingFactor = scale
 
-    player = {}
-    player.collider = world:newBSGRectangleCollider(400, 250, 40/4, 40/4, 14)
-    player.collider:setFixedRotation(true)
-    player.x = 32 * 16
-    player.y = 52 * 16
-    player.collider.x = player.x
-    player.collider.y = player.y
-    player.speed = 300/4
-    player.spriteSheet = love.graphics.newImage('sprites/player-sheet.png')
-    player.grid = anim8.newGrid(12, 18, player.spriteSheet:getWidth(), player.spriteSheet:getHeight())
+defaultFont = "assets/fonts/nihonium.ttf"  -- Path to the default font
+defaultFontSize = 60  -- Default font size
+fonts = {
+    lg.newFont(defaultFont, defaultFontSize * decreasingFactor ),  -- Adjust main font
+    lg.newFont(defaultFont, (defaultFontSize + 20)* decreasingFactor),  -- Adjust header font
+    lg.newFont(defaultFont, (defaultFontSize - 20) *decreasingFactor),  -- Adjust smaller font
+    lg.newFont(defaultFont, (defaultFontSize - 40)* decreasingFactor),  -- Adjust smallest font
+    lg.newFont(defaultFont, (defaultFontSize - 44) *decreasingFactor) , -- Adjust smallestest font
+    lg.newFont(defaultFont, (defaultFontSize - 52) *decreasingFactor) , -- Adjust smallestest font
+    lg.newFont(defaultFont, (defaultFontSize - 56) *decreasingFactor) , -- Adjust smallestest font
 
-    player.animations = {}
-    player.animations.down = anim8.newAnimation(player.grid('1-4', 1), 0.2)
-    player.animations.left = anim8.newAnimation(player.grid('1-4', 2), 0.2)
-    player.animations.right = anim8.newAnimation(player.grid('1-4', 3), 0.2)
-    player.animations.up = anim8.newAnimation(player.grid('1-4', 4), 0.2)
+}
 
-    player.anim = player.animations.left
+-- Global Graphics Data
+love.graphics.setDefaultFilter('nearest', 'nearest')  -- Set graphics filter for pixel-perfect rendering (no smoothing)
 
-    background = love.graphics.newImage('sprites/background.png')
+-- Initialize sceSnery module with different scenes (cont, texting, game)
+local scenery = SceneryInit(
+    { path = "src.recommendations"; key = "recommendations" ; default = true},
+    { path = "src.warning"; key = "warning" ; default = false},
+    { path = "src.cont"; key = "cont" ; default = false},  -- Load "cont" scene, not the default
+    { path = "src.texting"; key = "texting" ; default = false },  -- Load "texting" scene, set as default
+    { path = "src.menu"; key = "menu" ; default = false},
+    { path = "src.game"; key = "game" ; default = false}  -- Load "game" scene, not the default
+)
+scenery:hook(love)  -- Hook scenery module to Love2D functions
 
-    walls = {}
-    if gameMap.layers["Walls"] then
-        for i, obj in pairs(gameMap.layers["Walls"].objects) do
-            local wall = world:newRectangleCollider(obj.x, obj.y, obj.width, obj.height)
-            wall:setType('static')
-            table.insert(walls, wall)
-        end
-    end
-    cam:zoom(4)
+-- Global Love Functions
+
+-- Function called when the window is resized
+function love.resize(w, h)
+    wW = w  -- Update current window width
+    wH = h  -- Update current window height
+    resetScale(zoom)
+    print(scale)
+
+    local decreasingFactor = scale
+    -- Adjust font sizes based on the new window width
+    fonts = {
+        lg.newFont(defaultFont, defaultFontSize * decreasingFactor ),  -- Adjust main font
+        lg.newFont(defaultFont, (defaultFontSize + 20)* decreasingFactor),  -- Adjust header font
+        lg.newFont(defaultFont, (defaultFontSize - 20) *decreasingFactor),  -- Adjust smaller font
+        lg.newFont(defaultFont, (defaultFontSize - 40)* decreasingFactor),  -- Adjust smallest font
+        lg.newFont(defaultFont, (defaultFontSize - 44) *decreasingFactor) , -- Adjust smallestest font
+        lg.newFont(defaultFont, (defaultFontSize - 52) *decreasingFactor) , -- Adjust smallestest font
+        lg.newFont(defaultFont, (defaultFontSize - 56) *decreasingFactor) , -- Adjust smallestest font
+    
+    }
+
 end
 
-function love.update(dt)
-    local isMoving = false
-
-    local vx = 0
-    local vy = 0
-
-    if love.keyboard.isDown("right", "d") then
-        vx = player.speed
-        player.anim = player.animations.right
-        isMoving = true
-    end
-
-    if love.keyboard.isDown("left", "a") then
-        vx = -player.speed
-        player.anim = player.animations.left
-        isMoving = true
-    end
-
-    if love.keyboard.isDown("down", "s") then
-        vy = player.speed
-        player.anim = player.animations.down
-        isMoving = true
-    end
-
-    if love.keyboard.isDown("up", "w") then
-        vy = -player.speed
-        player.anim = player.animations.up
-        isMoving = true
-    end
-
-    player.collider:setLinearVelocity(vx, vy)
-
-    if isMoving == false then
-        player.anim:gotoFrame(2)
-    end
-
-    world:update(dt)
-    player.x = player.collider:getX()
-    player.y = player.collider:getY() - 25
-
-    player.anim:update(dt)
-
-    -- Update camera position
-    cam:lookAt(player.x, player.y)
-
-    -- This section prevents the camera from viewing outside the background
-    -- First, get width/height of the game window
-    local w = love.graphics.getWidth()
-    local h = love.graphics.getHeight()
-
-    -- -- Left border
-    -- if cam.x < w / 2 then
-    --     cam.x = w / 2
-    -- end
-
-    -- -- Right border
-    -- if cam.y < h / 2 then
-    --     cam.y = h / 2
-    -- end
-
-    -- Get width/height of background
-    local mapW = gameMap.width * gameMap.tilewidth * 2
-    local mapH = gameMap.height * gameMap.tileheight * 2
-
-    -- Right border
-    if cam.x > (mapW - w / 2) then
-        cam.x = (mapW - w / 2)
-    end
-    -- Bottom border
-    if cam.y > (mapH - h / 2) then
-        cam.y = (mapH - h / 2)
-    end
+function globalDraw()
+    joysticks = love.joystick.getJoysticks()
+    -- love.graphics.print(textQ.currentText)
 end
 
-function love.draw()
-    cam:attach()
+function resetScale(z)
+    zoom = z
+    scale = wH/defH * zoom
 
-    gameMap:drawLayer(gameMap.layers["BG"])
-    gameMap:drawLayer(gameMap.layers["Ground"])
-    gameMap:drawLayer(gameMap.layers["Wall2"])
-    gameMap:drawLayer(gameMap.layers["WallTextures"])
-    gameMap:drawLayer(gameMap.layers["Stairs"])
-    gameMap:drawLayer(gameMap.layers["Below-Furn"])
-    gameMap:drawLayer(gameMap.layers["Furniture"])
-    gameMap:drawLayer(gameMap.layers["Above-furn"])
-    player.anim:draw(player.spriteSheet, player.x, player.y, nil, 6 / 3.5, nil, 6, 9)
-    -- world:draw()
-    cam:detach()
+end
+
+-- Utility function to convert RGB values from 0-255 scale to 0-1 scale for Love2D
+function convertRGB(r, g, b)
+    return r/255, g/255, b/255  -- Return normalized RGB values
+end
+
+-- Utility function to calculate the distance between two points (x1, y1) and (x2, y2)
+function dist(x1, y1, x2, y2)
+    return math.sqrt((x2 - x1)^2 + (y2 - y1)^2)  -- Return the Euclidean distance
+end
+
+function distR(x1, y1, w1, h1, x2, y2, w2, h2)
+    local point1x = (x1 * 2 + w1)/2
+    local point2x = (x2 * 2 + w2)/2
+    local point1y = (y1 * 2 + h1)/2
+    local point2y = (y2 * 2 + h2)/2
+    return dist(point1x, point1y, point2x, point2y)
+end
+
+function centerR(x1, y1, w1, h1)
+    local point1x = (x1 * 2 + w1)/2
+    local point1y = (y1 * 2 + h1)/2
+    return point1x, point1y
+end
+function isColliding(r1x, r1y, r1w, r1h, r2x, r2y, r2w, r2h)
+    -- Calculate boundaries for rect1
+    local r1Left = r1x
+    local r1Right = r1x + r1w
+    local r1Top = r1y
+    local r1Bottom = r1y + r1h
+
+    -- Calculate boundaries for rect2
+    local r2Left = r2x
+    local r2Right = r2x + r2w
+    local r2Top = r2y
+    local r2Bottom = r2y + r2h
+
+    -- Check if rect1 is inside rect2
+    if r1Left >= r2Left and r1Right <= r2Right and
+       r1Top >= r2Top and r1Bottom <= r2Bottom then
+        return true
+    end
+
+    -- Check if rect2 is inside rect1
+    if r2Left >= r1Left and r2Right <= r1Right and
+       r2Top >= r1Top and r2Bottom <= r1Bottom then
+        return true
+    end
+
+    return false
 end
