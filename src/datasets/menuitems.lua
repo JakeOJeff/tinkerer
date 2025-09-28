@@ -1,7 +1,7 @@
 local mit = {}
 
 function mit.startGame(currentScene)
-    currentScene.setScene("recommendations")
+    currentScene.setScene("game")
 end
 
 function mit.quitGame()

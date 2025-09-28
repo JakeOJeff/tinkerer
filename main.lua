@@ -45,12 +45,8 @@ love.graphics.setDefaultFilter('nearest', 'nearest')  -- Set graphics filter for
 
 -- Initialize sceSnery module with different scenes (cont, texting, game)
 local scenery = SceneryInit(
-    { path = "src.recommendations"; key = "recommendations" ; default = true},
     { path = "src.warning"; key = "warning" ; default = false},
-    { path = "src.cont"; key = "cont" ; default = false},  -- Load "cont" scene, not the default
-    { path = "src.texting"; key = "texting" ; default = false },  -- Load "texting" scene, set as default
-    { path = "src.menu"; key = "menu" ; default = false},
-    { path = "src.game"; key = "game" ; default = false}  -- Load "game" scene, not the default
+    { path = "src.game"; key = "game" ; default = true}  -- Load "game" scene, not the default
 )
 scenery:hook(love)  -- Hook scenery module to Love2D functions
 

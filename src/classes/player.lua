@@ -173,7 +173,6 @@ function player.inRange(obj, dist)
     return false
 end
 function player.inRangeFunction(obj, condition, dist, func)
-
     local cond = condition
     if cond == nil then cond = true end
     

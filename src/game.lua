@@ -96,6 +96,8 @@ end
 
 -- Update function, called every frame to update game state
 function game:update(dt)
+        print(player.location)
+
     world:update(dt) -- Update physics world
     player.update(dt) -- Update player state and position
     doors:update(dt)
